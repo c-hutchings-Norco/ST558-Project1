@@ -194,3 +194,287 @@ helper_factor <- function(x, labels){
   )
 }
 ```
+
+## Function to Use API 
+
+Create a function to use the API to get the data and then create a tibble. Several things needed special attention:
+
+- creating default values
+
+- correct variables are selected
+
+-  specifying allowed values
+
+- using values from the variables list
+
+```{r}
+api_key <- "96f181e4ada2cf8ebea839ffd9fa684508d8fc09"
+
+
+#create a function to get the data from the api and create a tibble.
+get_api_data <- function(
+    #default values
+  year = 2024,
+  num_var = "AGEP",
+  cat_var = "SEX",
+  geography = "State",
+  geo_value = NULL){
+  
+  # Check year is in the given 4 years
+  if(length(year) != 1 ||
+     !year %in% c(2021, 2022, 2023, 2024)){
+    stop("Year must be 2021, 2022, 2023, or 2024")
+  }
+  
+  # Select metadata year
+  if(year == 2021){
+    year_metadata <- all_var_list$variables_21
+  } else if(year == 2022){
+    year_metadata <- all_var_list$variables_22
+  } else if(year == 2023){
+    year_metadata <- all_var_list$variables_23
+  } else {
+    year_metadata <- all_var_list$variables_24
+  }
+  
+  # Check numeric variable is one of the set variables
+  allowed_num <- c(
+    "AGEP",
+    "GASP",
+    "GRPIP",
+    "JWAP",
+    "JWDP",
+    "JWMNP"
+  )
+  
+  if(length(num_var) != 1){
+    stop("Specify exactly one numeric variable")
+  }
+  
+  if(!num_var %in% allowed_num){
+    stop("Invalid numeric variable")
+  }
+  
+  # PWGTP always included
+  api_vars <- c(num_var, "PWGTP")
+  
+  # Check categorical variable is from given list
+  allowed_cat <- c(
+    "FER",
+    "HHL",
+    "SCH",
+    "SCHL",
+    "SEX"
+  )
+  
+  if(length(cat_var) != 1){
+    stop("Specify exactly one categorical variable")
+  }
+  
+  if(!cat_var %in% allowed_cat){
+    stop("Invalid categorical variable")
+  }
+  #define the available variables to choose from
+  api_vars <- c(api_vars, cat_var)
+  
+  # Check geography is one of the values specified
+  allowed_geo <- c(
+    "Region",
+    "Division",
+    "State"
+  )
+  
+  if(length(geography) != 1){
+    stop("Specify exactly one geography level")
+  }
+  
+  if(!geography %in% allowed_geo){
+    stop("Geography must be Region, Division, or State")
+  }
+  
+  # Default geography value
+  if(is.null(geo_value)){
+    
+    geo_defaults <- c(
+      State = "06",
+      Division = "9",
+      Region = "4"
+    )
+    
+    geo_value <- unname(
+      geo_defaults[geography]
+    )
+    
+  }
+  
+  # Validate geography value
+  if(geography == "State"){
+    
+    if(year %in% c(2021, 2022)){
+      geo_var <- "ST"
+    } else {
+      geo_var <- "STATE"
+    }
+    
+  } else {
+    
+    geo_var <- toupper(geography)
+    
+  }
+  
+  
+  valid_geo <- names(
+    year_metadata[[geo_var]]$values$item
+  )
+  
+  if(tolower(geo_value) != "all" &&
+     !geo_value %in% valid_geo){
+    stop("Invalid geography value")
+  }
+  
+  # Build URL
+  if(tolower(geo_value) == "all"){
+    
+    url <- paste0(
+      "https://api.census.gov/data/",
+      year,
+      "/acs/acs1/pums?get=",
+      paste(api_vars, collapse = ","),
+      "&for=",
+      tolower(geography),
+      ":*",
+      "&key=",
+      api_key
+    )
+    
+  } else {
+    
+    url <- paste0(
+      "https://api.census.gov/data/",
+      year,
+      "/acs/acs1/pums?get=",
+      paste(api_vars, collapse = ","),
+      "&for=",
+      tolower(geography),
+      ":",
+      geo_value,
+      "&key=",
+      api_key
+    )
+    
+  }
+  
+  response <- GET(url)
+  
+  parsed <- fromJSON(
+    rawToChar(response$content)
+  )
+  
+  census_tbl <- helper(parsed)
+  
+  # Convert numeric/time variable
+  if(num_var %in% c(
+    "JWAP",
+    "JWDP",
+    "JWMNP")){
+    
+    census_tbl[[num_var]] <- sapply(
+      census_tbl[[num_var]],
+      helper_time,
+      var_name = num_var,
+      year_metadata = year_metadata
+    )
+    
+  } else {
+    
+    census_tbl[[num_var]] <-
+      as.numeric(census_tbl[[num_var]])
+    
+  }
+  
+  # Convert PWGTP
+  census_tbl$PWGTP <-
+    as.numeric(census_tbl$PWGTP)
+  
+  # Convert categorical variable
+  labels <- year_metadata[[cat_var]]$values$item
+  
+  census_tbl[[cat_var]] <-
+    helper_factor(
+      census_tbl[[cat_var]],
+      labels
+    )
+  
+  # Add census class
+  class(census_tbl) <-
+    c("census", class(census_tbl))
+  
+  return(census_tbl)
+  
+}
+
+```
+
+### Test the API Function
+
+```{r}
+get_api_data()
+
+# Different categorical variable
+get_api_data(cat_var = "SCHL")
+
+get_api_data(num_var = "GRPIP")
+
+get_api_data(num_var="JWAP")
+```
+
+## Create a Function for Multiple Years
+
+Create a function that combines more than 1 year. I had to be careful when dealing with the state variable since it has different name for 2021-2022 than 2023-2024. I used a for loop to go through each year and append the data to the table each pass. Finally a tibble is returned.
+
+```{r}
+
+# Create a function that combines more than 1 year
+get_api_data_multi <- function(
+    years,
+    num_var = "AGEP",
+    cat_var = "SEX",
+    geography = "State",
+    geo_value = NULL){
+  
+  #set table to empty
+  final_tbl <- NULL
+  #create a loop to go through for each given year.
+  for(year in years){
+    
+    temp <- get_api_data(
+      year = year,
+      num_var = num_var,
+      cat_var = cat_var,
+      geography = geography,
+      geo_value = geo_value
+    )
+    
+    temp$year <- year
+    
+    #first pass fill the table with the temp each additional pass append the new data to the table.
+    if(is.null(final_tbl)){
+      final_tbl <- temp
+    } else {
+      final_tbl <- bind_rows(final_tbl, temp)
+    }
+    
+  }
+  
+  return(final_tbl)
+  
+}
+```
+
+### Test the Function
+
+Test the function to make sure that the data from each year is parsed and combined in a tibble.
+
+```{r}
+get_api_data_multi(years = c(2021, 2022))
+```
