@@ -19,5 +19,33 @@
     "title": "Project 1",
     "section": "Combine the Years into a List",
     "text": "Combine the Years into a List\nCombine all the years into one list. Then save the list to an RDS file in a data folder. The RDS file was a new file type to me and I had to do some research on how to create the RDS file.\n\n#Combine all the lists into one list\nall_var_list &lt;- list(variables_21 = var_21, \n                     variables_22 = var_22, \n                     variables_23 = var_23, \n                     variables_24 = var_24)\n\n#Save the list as an RDS file in the data folder\nsaveRDS(all_var_list, \"data/variable_list.RDS\")"
+  },
+  {
+    "objectID": "Project1.html#use-api",
+    "href": "Project1.html#use-api",
+    "title": "Project 1",
+    "section": "Use API",
+    "text": "Use API\nUsing the api get the data and parse it from JSON format. It is important to identify the names of the data in order to parse the data.\n\n#Using the api get the data and parse it from JSON\n\nget_API_2021 &lt;- GET(\"https://api.census.gov/data/2024/acs/acs1/pums?get=SEX,PWGTP,JWAP,MAR&for=division:*&SCHL=24&key=96f181e4ada2cf8ebea839ffd9fa684508d8fc09\")\n\n#Identify the names in order to find where the data is stored.\nnames(get_API_2021)\n\n [1] \"url\"         \"status_code\" \"headers\"     \"all_headers\" \"cookies\"    \n [6] \"content\"     \"date\"        \"times\"       \"request\"     \"handle\"     \n\nparsed_census &lt;- fromJSON(rawToChar(get_API_2021$content))"
+  },
+  {
+    "objectID": "Project1.html#helper-function-to-parse-data",
+    "href": "Project1.html#helper-function-to-parse-data",
+    "title": "Project 1",
+    "section": "Helper Function to Parse Data",
+    "text": "Helper Function to Parse Data\nCreate a function to automate the creation of a tibble from parsed data. This will be used in a future function. Finally use the helper function to create a tibble from the data collected from the api in the code above.\n\n#Helper function to create a tibble from parsed data\nhelper &lt;- function(parsed_data){\n  new_tibble &lt;- as_tibble(parsed_data[-1, ], \n                          .name_repair='minimal')\n  names(new_tibble) &lt;- parsed_data[1, ]\n  return(new_tibble)\n}\n#Use helper function to create a tibble for the parsed census data\nhelper(parsed_census)\n\n# A tibble: 47,486 × 6\n   SEX   PWGTP JWAP  MAR   SCHL  division\n   &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;   \n 1 2     17    0     1     24    9       \n 2 1     58    0     3     24    3       \n 3 2     72    0     2     24    5       \n 4 2     13    0     1     24    5       \n 5 2     37    0     5     24    4       \n 6 2     47    155   5     24    2       \n 7 1     10    0     3     24    7       \n 8 1     24    92    5     24    3       \n 9 2     153   0     4     24    2       \n10 2     46    112   1     24    1       \n# ℹ 47,476 more rows"
+  },
+  {
+    "objectID": "Project1.html#helper-function-to-find-midpoint-time",
+    "href": "Project1.html#helper-function-to-find-midpoint-time",
+    "title": "Project 1",
+    "section": "Helper Function to find Midpoint Time",
+    "text": "Helper Function to find Midpoint Time\nCreate the time helper function that finds the midpoint of the time in the given time interval. There are several different variables available to test the time helper function on. One of the variables JWMNP is essentially a null value variable as the only value is they did not travel to work that day.\n\n#loading the all variables object so the items can be used to identify the labels for the variables.\nall_var_list &lt;- readRDS(\"data/variable_list.RDS\")\n\n\n#Create the helper time function\nhelper_time &lt;- function(code, var_name, year_metadata){\n  #code 0 as NA based on the item for the value\n  if(is.na(code) || code == \"0\"){\n    return(NA)\n  }\n  #Pull the label from the variable using its value\n  label &lt;-\n    year_metadata[[var_name]]$values$item[[as.character(code)]]\n  \n  if(is.null(label)){\n    return(NA)\n  }\n  #Format the time into a usable format by removing to and fixing p.m.\n  times &lt;- strsplit(label, \" to \")[[1]]\n  times &lt;- gsub(\"\\\\.\",\"\", times)\n  \n  start &lt;- parse_date_time(times[1], \"I:M p\")\n  end   &lt;- parse_date_time(times[2], \"I:M p\")\n  \n  #Finding the midpoint of the two times in the label\n  midpoint &lt;- start + (end - start)/2\n  \n  #Return the midpoint in hour and minute format\n  return(hm(format(midpoint, \"%H:%M\")))\n}\n\n\n#Using the helper time function to make sure it works and returns the time in hour:minute format\nhelper_time(\"198\",\"JWAP\" , all_var_list$variables_21)\n\n[1] \"16H 42M 0S\""
+  },
+  {
+    "objectID": "Project1.html#helper-function-for-categorical-variables",
+    "href": "Project1.html#helper-function-for-categorical-variables",
+    "title": "Project 1",
+    "section": "Helper Function for Categorical Variables",
+    "text": "Helper Function for Categorical Variables\nChecking validity of creating factors for the variables. All the variables seem appropriate for forcing them into factors.\n\n#Checking validity of creating factors for the variables\nlength(all_var_list$variables_24$FER$values$item)\n\n[1] 3\n\nlength(all_var_list$variables_24$HHL$values$item)\n\n[1] 6\n\nlength(all_var_list$variables_24$SCH$values$item)\n\n[1] 4\n\nlength(all_var_list$variables_24$SCHL$values$item)\n\n[1] 25\n\nall_var_list$variables_24$SCHL$values$item\n\n$`16`\n[1] \"Regular high school diploma\"\n\n$`01`\n[1] \"No schooling completed\"\n\n$`04`\n[1] \"Grade 1\"\n\n$`03`\n[1] \"Kindergarten\"\n\n$`07`\n[1] \"Grade 4\"\n\n$`23`\n[1] \"Professional degree beyond a bachelor's degree\"\n\n$`19`\n[1] \"1 or more years of college credit, no degree\"\n\n$`22`\n[1] \"Master's degree\"\n\n$`10`\n[1] \"Grade 7\"\n\n$`20`\n[1] \"Associate's degree\"\n\n$`0`\n[1] \"N/A (less than 3 years old)\"\n\n$`02`\n[1] \"Nursery school, preschool\"\n\n$`21`\n[1] \"Bachelor's degree\"\n\n$`08`\n[1] \"Grade 5\"\n\n$`24`\n[1] \"Doctorate degree\"\n\n$`06`\n[1] \"Grade 3\"\n\n$`14`\n[1] \"Grade 11\"\n\n$`17`\n[1] \"GED or alternative credential\"\n\n$`12`\n[1] \"Grade 9\"\n\n$`15`\n[1] \"12th grade - no diploma\"\n\n$`13`\n[1] \"Grade 10\"\n\n$`05`\n[1] \"Grade 2\"\n\n$`11`\n[1] \"Grade 8\"\n\n$`18`\n[1] \"Some college, but less than 1 year\"\n\n$`09`\n[1] \"Grade 6\"\n\n\nWrite a helper function to force the categorical variables into factors.\n\n# Create a factor helper function\nhelper_factor &lt;- function(x, labels){\n  factor(\n    x,\n    levels = names(labels),\n    labels = unlist(labels)\n  )\n}"
   }
 ]

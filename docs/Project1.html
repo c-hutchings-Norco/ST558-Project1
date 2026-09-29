@@ -272,6 +272,208 @@ Attaching package: 'dplyr'</code></pre>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#Save the list as an RDS file in the data folder</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(all_var_list, <span class="st">"data/variable_list.RDS"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+<section id="use-api" class="level2">
+<h2 class="anchored" data-anchor-id="use-api">Use API</h2>
+<p>Using the api get the data and parse it from JSON format. It is important to identify the names of the data in order to parse the data.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Using the api get the data and parse it from JSON</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>get_API_2021 <span class="ot">&lt;-</span> <span class="fu">GET</span>(<span class="st">"https://api.census.gov/data/2024/acs/acs1/pums?get=SEX,PWGTP,JWAP,MAR&amp;for=division:*&amp;SCHL=24&amp;key=96f181e4ada2cf8ebea839ffd9fa684508d8fc09"</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Identify the names in order to find where the data is stored.</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(get_API_2021)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "url"         "status_code" "headers"     "all_headers" "cookies"    
+ [6] "content"     "date"        "times"       "request"     "handle"     </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>parsed_census <span class="ot">&lt;-</span> <span class="fu">fromJSON</span>(<span class="fu">rawToChar</span>(get_API_2021<span class="sc">$</span>content))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="helper-function-to-parse-data" class="level2">
+<h2 class="anchored" data-anchor-id="helper-function-to-parse-data">Helper Function to Parse Data</h2>
+<p>Create a function to automate the creation of a tibble from parsed data. This will be used in a future function. Finally use the helper function to create a tibble from the data collected from the api in the code above.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Helper function to create a tibble from parsed data</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>helper <span class="ot">&lt;-</span> <span class="cf">function</span>(parsed_data){</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  new_tibble <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(parsed_data[<span class="sc">-</span><span class="dv">1</span>, ], </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                          <span class="at">.name_repair=</span><span class="st">'minimal'</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(new_tibble) <span class="ot">&lt;-</span> parsed_data[<span class="dv">1</span>, ]</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(new_tibble)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="co">#Use helper function to create a tibble for the parsed census data</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="fu">helper</span>(parsed_census)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 47,486 × 6
+   SEX   PWGTP JWAP  MAR   SCHL  division
+   &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;   
+ 1 2     17    0     1     24    9       
+ 2 1     58    0     3     24    3       
+ 3 2     72    0     2     24    5       
+ 4 2     13    0     1     24    5       
+ 5 2     37    0     5     24    4       
+ 6 2     47    155   5     24    2       
+ 7 1     10    0     3     24    7       
+ 8 1     24    92    5     24    3       
+ 9 2     153   0     4     24    2       
+10 2     46    112   1     24    1       
+# ℹ 47,476 more rows</code></pre>
+</div>
+</div>
+</section>
+<section id="helper-function-to-find-midpoint-time" class="level2">
+<h2 class="anchored" data-anchor-id="helper-function-to-find-midpoint-time">Helper Function to find Midpoint Time</h2>
+<p>Create the time helper function that finds the midpoint of the time in the given time interval. There are several different variables available to test the time helper function on. One of the variables JWMNP is essentially a null value variable as the only value is they did not travel to work that day.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">#loading the all variables object so the items can be used to identify the labels for the variables.</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>all_var_list <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/variable_list.RDS"</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Create the helper time function</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>helper_time <span class="ot">&lt;-</span> <span class="cf">function</span>(code, var_name, year_metadata){</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">#code 0 as NA based on the item for the value</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">is.na</span>(code) <span class="sc">||</span> code <span class="sc">==</span> <span class="st">"0"</span>){</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NA</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Pull the label from the variable using its value</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  label <span class="ot">&lt;-</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    year_metadata[[var_name]]<span class="sc">$</span>values<span class="sc">$</span>item[[<span class="fu">as.character</span>(code)]]</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(label)){</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NA</span>)</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Format the time into a usable format by removing to and fixing p.m.</span></span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>  times <span class="ot">&lt;-</span> <span class="fu">strsplit</span>(label, <span class="st">" to "</span>)[[<span class="dv">1</span>]]</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>  times <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">."</span>,<span class="st">""</span>, times)</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>  start <span class="ot">&lt;-</span> <span class="fu">parse_date_time</span>(times[<span class="dv">1</span>], <span class="st">"I:M p"</span>)</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>  end   <span class="ot">&lt;-</span> <span class="fu">parse_date_time</span>(times[<span class="dv">2</span>], <span class="st">"I:M p"</span>)</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Finding the midpoint of the two times in the label</span></span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>  midpoint <span class="ot">&lt;-</span> start <span class="sc">+</span> (end <span class="sc">-</span> start)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Return the midpoint in hour and minute format</span></span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">hm</span>(<span class="fu">format</span>(midpoint, <span class="st">"%H:%M"</span>)))</span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a><span class="co">#Using the helper time function to make sure it works and returns the time in hour:minute format</span></span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a><span class="fu">helper_time</span>(<span class="st">"198"</span>,<span class="st">"JWAP"</span> , all_var_list<span class="sc">$</span>variables_21)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "16H 42M 0S"</code></pre>
+</div>
+</div>
+</section>
+<section id="helper-function-for-categorical-variables" class="level2">
+<h2 class="anchored" data-anchor-id="helper-function-for-categorical-variables">Helper Function for Categorical Variables</h2>
+<p>Checking validity of creating factors for the variables. All the variables seem appropriate for forcing them into factors.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Checking validity of creating factors for the variables</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(all_var_list<span class="sc">$</span>variables_24<span class="sc">$</span>FER<span class="sc">$</span>values<span class="sc">$</span>item)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 3</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(all_var_list<span class="sc">$</span>variables_24<span class="sc">$</span>HHL<span class="sc">$</span>values<span class="sc">$</span>item)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 6</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(all_var_list<span class="sc">$</span>variables_24<span class="sc">$</span>SCH<span class="sc">$</span>values<span class="sc">$</span>item)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(all_var_list<span class="sc">$</span>variables_24<span class="sc">$</span>SCHL<span class="sc">$</span>values<span class="sc">$</span>item)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 25</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>all_var_list<span class="sc">$</span>variables_24<span class="sc">$</span>SCHL<span class="sc">$</span>values<span class="sc">$</span>item</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$`16`
+[1] "Regular high school diploma"
+
+$`01`
+[1] "No schooling completed"
+
+$`04`
+[1] "Grade 1"
+
+$`03`
+[1] "Kindergarten"
+
+$`07`
+[1] "Grade 4"
+
+$`23`
+[1] "Professional degree beyond a bachelor's degree"
+
+$`19`
+[1] "1 or more years of college credit, no degree"
+
+$`22`
+[1] "Master's degree"
+
+$`10`
+[1] "Grade 7"
+
+$`20`
+[1] "Associate's degree"
+
+$`0`
+[1] "N/A (less than 3 years old)"
+
+$`02`
+[1] "Nursery school, preschool"
+
+$`21`
+[1] "Bachelor's degree"
+
+$`08`
+[1] "Grade 5"
+
+$`24`
+[1] "Doctorate degree"
+
+$`06`
+[1] "Grade 3"
+
+$`14`
+[1] "Grade 11"
+
+$`17`
+[1] "GED or alternative credential"
+
+$`12`
+[1] "Grade 9"
+
+$`15`
+[1] "12th grade - no diploma"
+
+$`13`
+[1] "Grade 10"
+
+$`05`
+[1] "Grade 2"
+
+$`11`
+[1] "Grade 8"
+
+$`18`
+[1] "Some college, but less than 1 year"
+
+$`09`
+[1] "Grade 6"</code></pre>
+</div>
+</div>
+<p>Write a helper function to force the categorical variables into factors.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a factor helper function</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>helper_factor <span class="ot">&lt;-</span> <span class="cf">function</span>(x, labels){</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">factor</span>(</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    x,</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">levels =</span> <span class="fu">names</span>(labels),</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">unlist</span>(labels)</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 
 
 </section>

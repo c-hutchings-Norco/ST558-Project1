@@ -168,3 +168,29 @@ helper_time <- function(code, var_name, year_metadata){
 #Using the helper time function to make sure it works and returns the time in hour:minute format
 helper_time("198","JWAP" , all_var_list$variables_21)
 ```
+
+## Helper Function for Categorical Variables
+
+Checking validity of creating factors for the variables. All the variables seem appropriate for forcing them into factors.
+
+```{r}
+#Checking validity of creating factors for the variables
+length(all_var_list$variables_24$FER$values$item)
+length(all_var_list$variables_24$HHL$values$item)
+length(all_var_list$variables_24$SCH$values$item)
+length(all_var_list$variables_24$SCHL$values$item)
+all_var_list$variables_24$SCHL$values$item
+```
+
+Write a helper function to force the categorical variables into factors.
+
+```{r}
+# Create a factor helper function
+helper_factor <- function(x, labels){
+  factor(
+    x,
+    levels = names(labels),
+    labels = unlist(labels)
+  )
+}
+```
