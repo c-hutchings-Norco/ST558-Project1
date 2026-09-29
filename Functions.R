@@ -243,12 +243,25 @@ get_api_data <- function(
   }
   
   # Validate geography value
-  geo_var <- toupper(geography)
+  if(geography == "State"){
+    
+    if(year %in% c(2021, 2022)){
+      geo_var <- "ST"
+    } else {
+      geo_var <- "STATE"
+    }
+    
+  } else {
+    
+    geo_var <- toupper(geography)
+    
+  }
+  
   
   valid_geo <- names(
     year_metadata[[geo_var]]$values$item
   )
-  
+ 
   if(tolower(geo_value) != "all" &&
      !geo_value %in% valid_geo){
     stop("Invalid geography value")
@@ -334,6 +347,9 @@ get_api_data <- function(
   return(census_tbl)
   
 }
+
+
+
 get_api_data()
 
 # Different categorical variable
@@ -342,3 +358,42 @@ get_api_data(cat_var = "SCHL")
 get_api_data(num_var = "GRPIP")
 
 get_api_data(num_var="JWAP")
+
+
+# Create a function that combines more than 1 year
+get_api_data_multi <- function(
+    years,
+    num_var = "AGEP",
+    cat_var = "SEX",
+    geography = "State",
+    geo_value = NULL){
+  
+  final_tbl <- NULL
+  
+  for(year in years){
+    
+    temp <- get_api_data(
+      year = year,
+      num_var = num_var,
+      cat_var = cat_var,
+      geography = geography,
+      geo_value = geo_value
+    )
+    
+    temp$year <- year
+    
+    if(is.null(final_tbl)){
+      final_tbl <- temp
+    } else {
+      final_tbl <- bind_rows(final_tbl, temp)
+    }
+    
+  }
+  
+  return(final_tbl)
+  
+}
+
+get_api_data_multi(years = c(2021, 2022))
+
+
