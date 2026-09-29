@@ -8,7 +8,11 @@ editor: visual
 
 ## Census Data API
 
-Load libraries that will potentially be used throughout the document
+The purpose of this project is to create a reusable set of functions that interact with the United States Census Bureau API. Rather than manually downloading data for a specific year, variable, or geographic area, these functions allow users to dynamically request data from the Census Public Use Microdata Sample (PUMS) dataset. The project focuses on four survey years, 2021 through 2024, and demonstrates how metadata can be used to automate variable selection, labeling, and data cleaning.
+
+To accomplish this goal, I first developed a function to retrieve metadata describing the available variables. Next, I created helper functions to convert the raw API responses into usable data structures and to properly interpret coded values. Finally, I combined these components into a larger function capable of requesting, cleaning, and returning Census data in a user-friendly format.
+
+The first step in accomplishing the task is to load libraries that will potentially be used throughout the document. The `httr` package is used to communicate with the Census API, while `jsonlite` parses JSON responses into R objects. The `dplyr` and `tidyverse` packages provide data wrangling functionality, and `lubridate` is used to work with time variables. Together, these packages make it possible to collect, clean, and transform the Census data efficiently.
 
 ```{r}
 library(httr)
@@ -21,7 +25,7 @@ library(lubridate)
 
 # Part 1: Functions
 
-Create a function to get the specified variables using the Census api. We are looking to get the variables along with their values.
+Before requesting data from the API, it is important to understand the available variables and their associated metadata. The Census API provides a file containing descriptions, labels, and possible values for each variable. Since some variable names differ across survey years, I created a function that automatically retrieves the correct metadata and selects only the variables relevant to this project.
 
 ```{r}
 #Create a function to get all the variables named funcation variable list (fun_var_list)
@@ -60,7 +64,9 @@ fun_var_list <- function(year) {
 
 ### Test the function
 
-Run the function on each year of data to create the list of variables.
+The function was tested using each of the four survey years included in the project. For each year, the function successfully retrieved the metadata from the Census API and returned a list containing the selected variables and their associated information. This confirms that the function can dynamically build the correct API request and extract the desired variable information regardless of which of the supported years is selected.
+
+An important part of testing was verifying that the function properly handles invalid user input. To accomplish this, I attempted to run the function using the year 2025. Since the project only supports the years 2021 through 2024, the function correctly stopped execution and returned an error message. This error handling prevents users from requesting years for which the function was not designed and helps ensure that only valid API requests are submitted.
 
 ```{r}
 #Run the function for each year and create a list
@@ -74,17 +80,17 @@ var_24 <- fun_var_list(2024)
 
 ### View the List
 
-View the lists created from calling the function.
+After creating the variable lists, I used the `View()` function to explore their structure and verify that the metadata was successfully retrieved. Examining the list revealed that each variable contains several pieces of information, including a descriptive label and, for categorical variables, a collection of possible coded values stored in the `values$item` section. By inspecting the metadata, I was able to identify where the variable descriptions and response categories were stored. For example, the `SEX` variable contains two possible values, Male and Female, making it straightforward to convert the coded responses into readable labels. In contrast, the `JWAP` variable, which represents time of arrival at work, contains 286 possible values in its `items` list. Each of these values corresponds to a specific arrival time interval. The large number of categories for variables such as `JWAP` highlights the importance of using metadata to correctly interpret and label the Census data.
+
+Understanding the structure of these metadata objects was an important step because many Census variables are stored as numeric codes rather than meaningful labels. The information contained in the metadata is later used by the helper functions to convert coded values into more interpretable formats.
 
 ```{r}
 View(var_21)
 ```
 
-I was able to identify the structure of the lists using the View function on the list. I was able to locate the label for each variable which explains what the variable is measuring. I also noticed the value contains a list of items. The items are the actual values of the variables. For example, the SEX variable the items are "Male" and "Female". The JWAP variable which is time of arrival at work, has 286 possible values located in the items list. This will be important to note if I want to label the values of the variables.
-
 ## Combine the Years into a List
 
-Combine all the years into one list. Then save the list to an RDS file in a data folder. The RDS file was a new file type to me and I had to do some research on how to create the RDS file.
+Since the metadata structure is similar across years, it is convenient to store all four years in a single object. Combining the metadata into one list makes it easier to reference the correct year later in the project. Saving the object as an RDS file also prevents unnecessary API requests because the metadata can be loaded directly from disk. The RDS file was a new file type to me and I had to do some research on how to create the RDS file.
 
 ```{r}
 #Combine all the lists into one list
@@ -99,7 +105,7 @@ saveRDS(all_var_list, "data/variable_list.RDS")
 
 ## Use API 
 
-Using the api get the data and parse it from JSON format. It is important to identify the names of the data in order to parse the data.
+Once the metadata was available, the next step was learning how the Census API returns actual survey data. I began by creating a single test request and examining the structure of the response. Understanding the response format was necessary before building a general-purpose function to automate data collection.
 
 ```{r}
 #Using the api get the data and parse it from JSON
@@ -112,9 +118,11 @@ names(get_API_2021)
 parsed_census <- fromJSON(rawToChar(get_API_2021$content))
 ```
 
+Because every Census API request returns data in a similar format, I created a helper function to perform the conversion process automatically. Encapsulating this logic inside a function reduces repeated code and simplifies future data requests.
+
 ## Helper Function to Parse Data
 
-Create a function to automate the creation of a tibble from parsed data. This will be used in a future function. Finally use the helper function to create a tibble from the data collected from the api in the code above.
+The raw API response is returned as JSON, which is not a user friendly format for statistical analysis. Once the JSON response was parsed, I explored the organization of the returned dataset and identified that the API stores column names in the first row rather than as traditional variable names. The remaining rows contained the actual observations. Recognizing this pattern allowed me to develop a helper function that systematically extracts the column names and converts the data into a clean tibble ready for analysis.
 
 ```{r}
 #Helper function to create a tibble from parsed data
@@ -128,9 +136,11 @@ helper <- function(parsed_data){
 helper(parsed_census)
 ```
 
+Several Census variables record times using coded intervals rather than exact clock times. For example, a code may represent an arrival time between two specified hours. To make these variables easier to analyze, I created a helper function that converts each interval into its midpoint. This provides a single representative time while preserving the overall timing information contained in the original data.
+
 ## Helper Function to find Midpoint Time 
 
-Create the time helper function that finds the midpoint of the time in the given time interval. There are several different variables available to test the time helper function on. One of the variables JWMNP is essentially a null value variable as the only value is they did not travel to work that day.
+Create the time helper function that finds the midpoint of the time in the given time interval. There are several different variables available to test the time helper function on. One of the variables JWMNP is essentially a null value variable as the only value is they did not travel to work that day. I removed the day portion of the time/date variable since this information was not provided and only returned the hour:minute:second portion of the date/time value.
 
 ```{r}
 #loading the all variables object so the items can be used to identify the labels for the variables.
@@ -171,7 +181,7 @@ helper_time("198","JWAP" , all_var_list$variables_21)
 
 ## Helper Function for Categorical Variables
 
-Checking validity of creating factors for the variables. All the variables seem appropriate for forcing them into factors.
+Many Census variables are stored as coded categories rather than descriptive labels. Before creating the helper function, I reviewed the metadata and confirmed that variables such as FER, HHL, SCH, SCHL, and SEX are categorical and should be stored as factors, they don't have too many levels that factors would be meaningless. The helper function uses the metadata to replace coded values with readable labels and convert the variable into a factor.
 
 ```{r}
 #Checking validity of creating factors for the variables
@@ -197,15 +207,9 @@ helper_factor <- function(x, labels){
 
 ## Function to Use API 
 
-Create a function to use the API to get the data and then create a tibble. Several things needed special attention:
+After creating the helper functions, I combined them into a single function that retrieves Census data and returns a cleaned tibble. The function includes default values, validates user inputs, and automatically selects the correct metadata for the requested year.
 
-- creating default values
-
-- correct variables are selected
-
--  specifying allowed values
-
-- using values from the variables list
+Because the state variable is named `ST` in 2021 and 2022 but `STATE` in 2023 and 2024, the function adjusts automatically based on the survey year. After downloading the data, it converts numerical variables, applies midpoint calculations to time variables, and converts categorical variables into labeled factors.
 
 ```{r}
 api_key <- "96f181e4ada2cf8ebea839ffd9fa684508d8fc09"
@@ -417,6 +421,8 @@ get_api_data <- function(
 
 ### Test the API Function
 
+I tested the function using several combinations of arguments, including different numerical variables, categorical variables, and time variables. These tests confirmed that the function correctly retrieves the requested data and applies the appropriate conversions before returning a tibble.
+
 ```{r}
 get_api_data()
 
@@ -430,7 +436,7 @@ get_api_data(num_var="JWAP")
 
 ## Create a Function for Multiple Years
 
-Create a function that combines more than 1 year. I had to be careful when dealing with the state variable since it has different name for 2021-2022 than 2023-2024. I used a for loop to go through each year and append the data to the table each pass. Finally a tibble is returned.
+To allow data from multiple years to be analyzed together, I created a function that repeatedly calls the single-year function and combines the results. A year variable is added to each dataset before the data are merged, making it possible to identify the source year of each observation.
 
 ```{r}
 
@@ -473,7 +479,7 @@ get_api_data_multi <- function(
 
 ### Test the Function
 
-Test the function to make sure that the data from each year is parsed and combined in a tibble.
+The multi-year function was tested using data from 2021 and 2022. The results showed that data from both years were successfully retrieved, combined, and returned as a single tibble. This verified that the functions work together to automate the collection and preparation of Census data across multiple years.
 
 ```{r}
 get_api_data_multi(years = c(2021, 2022))
