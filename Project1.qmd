@@ -6,4 +6,165 @@ format: html
 editor: visual
 ---
 
-## 
+## Census Data API
+
+Load libraries that will potentially be used throughout the document
+
+```{r}
+library(httr)
+library(jsonlite)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+```
+
+# Part 1: Functions
+
+Create a function to get the specified variables using the Census api. We are looking to get the variables along with their values.
+
+```{r}
+#Create a function to get all the variables named funcation variable list (fun_var_list)
+fun_var_list <- function(year) {
+  
+  # Exclude any years outside of the following    
+  if (!year %in% c(2021, 2022, 2023, 2024)) {
+    stop("Year must be 2021, 2022, 2023, or 2024.")
+  }
+  
+  # Use the API to get the data, use paste to add the year as a variable determined by the function    
+  response <- GET(
+    paste0("https://api.census.gov/data/",
+           year,
+           "/acs/acs1/pums/variables.json"))
+  
+  # Parse the data from JSON  
+  parse_var <- fromJSON(rawToChar(response$content))
+  
+  # Pull out the variables required.  Choose the names depending on the year requested because they change for certain years.  
+  
+  if (year %in% c(2021, 2022)) {
+    required_vars <- c("AGEP", "GASP", "GRPIP", "JWAP", "JWDP", "JWMNP", "PWGTP", "FER", "HHL", "SCH","SCHL", "SEX", "ST", "REGION", "DIVISION")
+    
+  } else {
+    required_vars <- c("AGEP", "GASP", "GRPIP", "JWAP", "JWDP","JWMNP", "PWGTP", "FER", "HHL", "SCH", "SCHL", "SEX", "STATE", "REGION", "DIVISION")
+  }
+  
+  #create a list that includes only the required variables.    
+  var_list <- parse_var$variables[required_vars]
+  
+  #return the list  
+  return(var_list)
+}
+```
+
+### Test the function
+
+Run the function on each year of data to create the list of variables.
+
+```{r}
+#Run the function for each year and create a list
+var_21 <- fun_var_list(2021)
+var_22 <- fun_var_list(2022)
+var_23 <- fun_var_list(2023)
+var_24 <- fun_var_list(2024)
+#Try a year out of range, should produce an error.
+#var_25 <- fun_var_list(2025)
+```
+
+### View the List
+
+View the lists created from calling the function.
+
+```{r}
+View(var_21)
+```
+
+I was able to identify the structure of the lists using the View function on the list. I was able to locate the label for each variable which explains what the variable is measuring. I also noticed the value contains a list of items. The items are the actual values of the variables. For example, the SEX variable the items are "Male" and "Female". The JWAP variable which is time of arrival at work, has 286 possible values located in the items list. This will be important to note if I want to label the values of the variables.
+
+## Combine the Years into a List
+
+Combine all the years into one list. Then save the list to an RDS file in a data folder. The RDS file was a new file type to me and I had to do some research on how to create the RDS file.
+
+```{r}
+#Combine all the lists into one list
+all_var_list <- list(variables_21 = var_21, 
+                     variables_22 = var_22, 
+                     variables_23 = var_23, 
+                     variables_24 = var_24)
+
+#Save the list as an RDS file in the data folder
+saveRDS(all_var_list, "data/variable_list.RDS")
+```
+
+## Use API 
+
+Using the api get the data and parse it from JSON format. It is important to identify the names of the data in order to parse the data.
+
+```{r}
+#Using the api get the data and parse it from JSON
+
+get_API_2021 <- GET("https://api.census.gov/data/2024/acs/acs1/pums?get=SEX,PWGTP,JWAP,MAR&for=division:*&SCHL=24&key=96f181e4ada2cf8ebea839ffd9fa684508d8fc09")
+
+#Identify the names in order to find where the data is stored.
+names(get_API_2021)
+
+parsed_census <- fromJSON(rawToChar(get_API_2021$content))
+```
+
+## Helper Function to Parse Data
+
+Create a function to automate the creation of a tibble from parsed data. This will be used in a future function. Finally use the helper function to create a tibble from the data collected from the api in the code above.
+
+```{r}
+#Helper function to create a tibble from parsed data
+helper <- function(parsed_data){
+  new_tibble <- as_tibble(parsed_data[-1, ], 
+                          .name_repair='minimal')
+  names(new_tibble) <- parsed_data[1, ]
+  return(new_tibble)
+}
+#Use helper function to create a tibble for the parsed census data
+helper(parsed_census)
+```
+
+## Helper Function to find Midpoint Time 
+
+Create the time helper function that finds the midpoint of the time in the given time interval. There are several different variables available to test the time helper function on. One of the variables JWMNP is essentially a null value variable as the only value is they did not travel to work that day.
+
+```{r}
+#loading the all variables object so the items can be used to identify the labels for the variables.
+all_var_list <- readRDS("data/variable_list.RDS")
+
+
+#Create the helper time function
+helper_time <- function(code, var_name, year_metadata){
+  #code 0 as NA based on the item for the value
+  if(is.na(code) || code == "0"){
+    return(NA)
+  }
+  #Pull the label from the variable using its value
+  label <-
+    year_metadata[[var_name]]$values$item[[as.character(code)]]
+  
+  if(is.null(label)){
+    return(NA)
+  }
+  #Format the time into a usable format by removing to and fixing p.m.
+  times <- strsplit(label, " to ")[[1]]
+  times <- gsub("\\.","", times)
+  
+  start <- parse_date_time(times[1], "I:M p")
+  end   <- parse_date_time(times[2], "I:M p")
+  
+  #Finding the midpoint of the two times in the label
+  midpoint <- start + (end - start)/2
+  
+  #Return the midpoint in hour and minute format
+  return(hm(format(midpoint, "%H:%M")))
+}
+
+
+#Using the helper time function to make sure it works and returns the time in hour:minute format
+helper_time("198","JWAP" , all_var_list$variables_21)
+```

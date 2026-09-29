@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "Project1.html",
+    "href": "Project1.html",
+    "title": "Project 1",
+    "section": "",
+    "text": "Load libraries that will potentially be used throughout the document\n\nlibrary(httr)\n\nWarning: package 'httr' was built under R version 4.5.3\n\nlibrary(jsonlite)\n\nWarning: package 'jsonlite' was built under R version 4.5.3\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nlibrary(tidyverse)\n\nWarning: package 'lubridate' was built under R version 4.5.3\n\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ forcats   1.0.1     ✔ readr     2.1.6\n✔ ggplot2   4.0.2     ✔ stringr   1.6.0\n✔ lubridate 1.9.5     ✔ tibble    3.3.1\n✔ purrr     1.2.1     ✔ tidyr     1.3.2\n\n\n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter()  masks stats::filter()\n✖ purrr::flatten() masks jsonlite::flatten()\n✖ dplyr::lag()     masks stats::lag()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors\n\nlibrary(ggplot2)\nlibrary(lubridate)"
+  },
+  {
+    "objectID": "Project1.html#census-data-api",
+    "href": "Project1.html#census-data-api",
+    "title": "Project 1",
+    "section": "",
+    "text": "Load libraries that will potentially be used throughout the document\n\nlibrary(httr)\n\nWarning: package 'httr' was built under R version 4.5.3\n\nlibrary(jsonlite)\n\nWarning: package 'jsonlite' was built under R version 4.5.3\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nlibrary(tidyverse)\n\nWarning: package 'lubridate' was built under R version 4.5.3\n\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ forcats   1.0.1     ✔ readr     2.1.6\n✔ ggplot2   4.0.2     ✔ stringr   1.6.0\n✔ lubridate 1.9.5     ✔ tibble    3.3.1\n✔ purrr     1.2.1     ✔ tidyr     1.3.2\n\n\n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter()  masks stats::filter()\n✖ purrr::flatten() masks jsonlite::flatten()\n✖ dplyr::lag()     masks stats::lag()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors\n\nlibrary(ggplot2)\nlibrary(lubridate)"
+  },
+  {
+    "objectID": "Project1.html#combine-the-years-into-a-list",
+    "href": "Project1.html#combine-the-years-into-a-list",
+    "title": "Project 1",
+    "section": "Combine the Years into a List",
+    "text": "Combine the Years into a List\nCombine all the years into one list. Then save the list to an RDS file in a data folder. The RDS file was a new file type to me and I had to do some research on how to create the RDS file.\n\n#Combine all the lists into one list\nall_var_list &lt;- list(variables_21 = var_21, \n                     variables_22 = var_22, \n                     variables_23 = var_23, \n                     variables_24 = var_24)\n\n#Save the list as an RDS file in the data folder\nsaveRDS(all_var_list, \"data/variable_list.RDS\")"
+  }
+]
