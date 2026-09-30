@@ -396,4 +396,48 @@ get_api_data_multi <- function(
 
 get_api_data_multi(years = c(2021, 2022))
 
+get_mean_function <- function(numeric_vector, weight_vector){
+  wt_mean = sum(numeric_vector*weight_vector)/sum(weight_vector)
+  return(wt_mean)
+}
+
+get_sd_function <- function(numeric_vector, weight_vector){
+  
+  calculated_mean <- get_mean_function(numeric_vector, weight_vector)
+  
+  wt_sd <- sqrt(
+    sum(numeric_vector**2*weight_vector)/sum(weight_vector)-calculated_mean**2)
+  
+  return(wt_sd)
+}
+
+summary.census <- function(census_tib, 
+                           numeric= c(
+                             "AGEP",
+                             "GASP",
+                             "GRPIP"), 
+                           categorical= c(
+                             "FER",
+                             "HHL",
+                             "SCH",
+                             "SCHL",
+                             "SEX"
+                           )){
+  output <- list()
+  
+  for(var in numeric){
+    output[[paste0(var, "_mean")]] <- get_mean_function(
+      census_tib[[var]], census_tib$PWGTP
+    )
+    output[[paste0(var, "-sd")]] <- get_sd_function(
+      census_tib[[var]], census_tib$PwGTP
+    )
+  }
+  for(var in categorical){
+    output[[var]] <- table(census_tib[[var]])
+  }
+  return(output)
+}
+ 
+ 
 

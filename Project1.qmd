@@ -103,7 +103,7 @@ all_var_list <- list(variables_21 = var_21,
 saveRDS(all_var_list, "data/variable_list.RDS")
 ```
 
-## Use API 
+## Use API
 
 Once the metadata was available, the next step was learning how the Census API returns actual survey data. I began by creating a single test request and examining the structure of the response. Understanding the response format was necessary before building a general-purpose function to automate data collection.
 
@@ -138,7 +138,7 @@ helper(parsed_census)
 
 Several Census variables record times using coded intervals rather than exact clock times. For example, a code may represent an arrival time between two specified hours. To make these variables easier to analyze, I created a helper function that converts each interval into its midpoint. This provides a single representative time while preserving the overall timing information contained in the original data.
 
-## Helper Function to find Midpoint Time 
+## Helper Function to find Midpoint Time
 
 Create the time helper function that finds the midpoint of the time in the given time interval. There are several different variables available to test the time helper function on. One of the variables JWMNP is essentially a null value variable as the only value is they did not travel to work that day. I removed the day portion of the time/date variable since this information was not provided and only returned the hour:minute:second portion of the date/time value.
 
@@ -205,7 +205,7 @@ helper_factor <- function(x, labels){
 }
 ```
 
-## Function to Use API 
+## Function to Use API
 
 After creating the helper functions, I combined them into a single function that retrieves Census data and returns a cleaned tibble. The function includes default values, validates user inputs, and automatically selects the correct metadata for the requested year.
 
@@ -483,4 +483,59 @@ The multi-year function was tested using data from 2021 and 2022. The results sh
 
 ```{r}
 get_api_data_multi(years = c(2021, 2022))
+```
+
+## Summaries for Numerical and Categorical Variables
+
+```{r}
+
+#create a function to calculate the weighted mean
+get_mean_function <- function(numeric_vector, weight_vector){
+  wt_mean = sum(numeric_vector*weight_vector)/sum(weight_vector)
+  
+  return(wt_mean)
+}
+
+#create a function to calculate the standard devaition using the weighted mean function
+get_sd_function <- function(numeric_vector, weight_vector){
+  #call the mean function to find the mean
+  calculated_mean <- get_mean_function(numeric_vector, weight_vector)
+  
+  wt_sd <- sqrt(
+    sum(numeric_vector**2*weight_vector)/sum(weight_vector)-calculated_mean**2)
+  
+  return(wt_sd)
+}
+```
+
+### Function for Summaries
+
+```{r}
+summary.census <- function(census_tib, 
+                           numeric= c(
+                             "AGEP",
+                             "GASP",
+                             "GRPIP"), 
+                           categorical= c(
+                             "FER",
+                             "HHL",
+                             "SCH",
+                             "SCHL",
+                             "SEX"
+                           )){
+  output <- list()
+  
+  for(var in numeric){
+    output[[paste0(var, "_mean")]] <- get_mean_function(
+      census_tib[[var]], census_tib$PWGTP
+    )
+    output[[paste0(var, "-sd")]] <- get_sd_function(
+      census_tib[[var]], census_tib$PwGTP
+    )
+  }
+  for(var in categorical){
+    output[[var]] <- table(census_tib[[var]])
+  }
+  return(output)
+}
 ```
