@@ -432,9 +432,6 @@ get_api_data(cat_var = "SCHL")
 #get_api_data(num_var = "GRPIP")
 
 #get_api_data(num_var="JWAP")
-
-#Create a table to use later
-census_api_tibble <- get_api_data()
 ```
 
 ## Create a Function for Multiple Years
@@ -515,32 +512,33 @@ get_sd_function <- function(numeric_vector, weight_vector){
 
 ```{r}
 summary.census <- function(census_tib, 
-                           numeric= c(
-                             "AGEP",
-                             "GASP",
-                             "GRPIP"), 
-                           categorical= c(
-                             "FER",
-                             "HHL",
-                             "SCH",
-                             "SCHL",
-                             "SEX"
-                           )){
+                           num_var= NULL, 
+                           cat_var= NULL){
+  #if numeric remains null, all variables will be used
+  if(is.null(num_var)){
+    num_var <- c("AGEP", "GASP", "GRPIP")
+  }
+  
+  #if categorical remains null, all variables will be used
+  if(is.null(cat_var)){
+    cat_var <- c("FER", "HHL", "SCH", "SCHL", "SEX", "year")
+  }
+  
   output <- list()
   
-  for(var in numeric){
+  for(var in num_var){
     #check for variables that are in the tibble
     if(var %in% names(census_tib)){
       
     output[[paste0(var, "_mean")]] <- get_mean_function(
       census_tib[[var]], census_tib$PWGTP
     )
-    output[[paste0(var, "-sd")]] <- get_sd_function(
+    output[[paste0(var, "_sd")]] <- get_sd_function(
       census_tib[[var]], census_tib$PWGTP
     )
     }
   }
-  for(var in categorical){
+  for(var in cat_var){
     #check for variables in census tibble
     if(var %in% names(census_tib)){
       
@@ -554,6 +552,43 @@ summary.census <- function(census_tib,
 ### Test the Function
 
 ```{r}
-names(census_api_tibble)
-summary(census_api_tibble)
+#Create table to use in function
+#census_api_tibble <- get_api_data()
+#create table with different variables
+census_api_tib <- get_api_data(num_var= 'GRPIP', cat_var="FER")
+
+#call the summary function
+#summary(census_api_tibble)
+
+#call the summary function
+summary(census_api_tib)
+```
+
+## Create a Generic Plot Function
+
+```{r}
+plot.census <- function(census_tib, num_var, cat_var){
+  
+  if(length(num_var) != 1){
+    stop("Specify exactly one numeric variable")
+  }
+  
+  if(length(cat_var) != 1){
+    stop("Specify exactly one categorical variable")
+  }
+  
+  ggplot(census_tib, aes(x = get(cat_var),
+      y = get(num_var),weight = PWGTP)) +
+    geom_boxplot() +
+    labs(title = paste(num_var, "by", cat_var),
+      x = cat_var,
+      y = num_var
+    )
+}
+```
+
+### Test Graph Function
+
+```{r}
+plot(census_api_tib, num_var= 'GRPIP', cat_var="FER")
 ```
