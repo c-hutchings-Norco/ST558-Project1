@@ -557,3 +557,4 @@ summary.census <- function(census_tib,
 names(census_api_tibble)
 summary(census_api_tibble)
 ```
+
