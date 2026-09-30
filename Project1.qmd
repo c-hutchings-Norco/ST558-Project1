@@ -607,9 +607,7 @@ plot(census_api_tib, num_var= 'GRPIP', cat_var="FER")
 
 # Investigation
 
-One question that can be explored using the Census data is whether income differs based on fertility status. The variable **GRPIP** measures income, while **FER** indicates whether an individual gave birth within the previous 12 months. Because both variables can be retrieved directly through the API function, they provide a useful example for demonstrating the functionality of the custom API, summary, and plotting methods.
-
-First, the data were retrieved using the API function.
+One question that can be explored using the Census data is whether income differs based on fertility status. The variable **GRPIP** measures income, while **FER** indicates whether an individual gave birth within the previous 12 months. Since this analysis focuses on recent childbirth, only females of childbearing age are classified as either having given birth or not given birth in the last year. Males and females outside the childbearing age range are grouped into the **"Other"** category.
 
 ```{r}
 census_fertility_income <- get_api_data(num_var= 'GRPIP', cat_var="FER")
@@ -621,7 +619,9 @@ The custom summary function was then used to produce weighted numerical summarie
 summary(census_fertility_income)
 ```
 
-The summary results showed the weighted mean and weighted standard deviation of income as well as the number of observations in each fertility category. This demonstrates that the custom `summary.census()` method successfully computes both numerical and categorical summaries while automatically incorporating the Census sampling weights.
+The summary output reports the weighted mean and weighted standard deviation of income, along with the number of observations in each fertility category. The majority of individuals fall into the **Other** category, with 304,843 observations. The smallest group consists of women who gave birth in the last 12 months, with 3,893 observations. This is expected since only a relatively small proportion of women give birth in any given year. The remaining 84,989 observations represent women who did not give birth in the previous 12 months.
+
+Across all groups, the mean income is approximately \$15.4 thousand, with a standard deviation of about \$25 thousand. The standard deviation being substantially larger than the mean suggests considerable variability in income. Additionally, the mean is much larger than the median, indicating that the income distribution is strongly right-skewed, with a relatively small number of high-income individuals pulling the average upward.
 
 Next, the custom plotting function was used to visualize the distribution of income across fertility categories.
 
@@ -633,9 +633,13 @@ plot(
 )
 ```
 
-The resulting boxplot allows the income distributions of the fertility groups to be compared visually. Differences in medians, variability, and potential outliers can be observed directly from the graph. This example demonstrates that the custom `plot.census()` method can create graphical summaries using the same syntax as the generic R `plot()` function.
+The boxplots show that the median income is very similar across all three fertility categories. All groups exhibit substantial right skewness, which is typical of income data. Among women of childbearing age, there appears to be little difference in income between those who gave birth within the last 12 months and those who did not. The interquartile ranges are similar, suggesting comparable levels of income variability. Both groups also begin exhibiting outliers at approximately \$75 thousand, indicating similar upper-tail behavior.
 
-To further test the flexibility of the functions, a second dataset was created using age and sex.
+The **Other** category displays some notable differences. Its interquartile range is smaller, and outliers begin at a lower income level of roughly \$55 thousand. One possible explanation is that this group includes children and teenagers who generally have little or no income, along with older adults who may be retired. These populations tend to have lower earnings, which compresses the overall distribution and lowers the point at which observations are classified as outliers.
+
+Overall, there is little evidence from these graphical summaries that recent childbirth is associated with substantial differences in income. The similarities in median income, spread, and overall distribution suggest that women who gave birth in the last year have income patterns that are broadly comparable to women who did not.
+
+To further test the flexibility of the functions, a second dataset was created using age and sex. This allows patterns in age for males and females to be examined.
 
 ```{r}
 census_age <- get_api_data(
@@ -644,13 +648,13 @@ census_age <- get_api_data(
 )
 ```
 
-The custom summary function was applied again.
+The custom summary function was applied again to examine the overall characteristics of the sample. The weighted mean age was 39 years, with a weighted standard deviation of 23 years. Assuming an approximately normal distribution, this suggests that many individuals fall between roughly 15 and 62 years of age, although the actual age distribution may not be perfectly symmetric. The sample was also relatively balanced by sex, containing 199,089 females and 194,636 males, with females representing a slightly larger proportion of the population.
 
 ```{r}
 summary(census_age)
 ```
 
-A graphical summary was also produced.
+A graphical summary was also produced. The boxplots show that the median age is very close to the mean age of approximately 40 years for both males and females. The median age for females is slightly higher, by about 1 to 2 years, than the median age for males. This observation is reasonable, as females generally have a longer life expectancy than males. The age distribution for males appears to be slightly less variable than the distribution for females, as indicated by a smaller spread in the boxplot. However, the minimum and maximum ages are approximately the same for both genders, suggesting that the overall age range is similar across the two groups.
 
 ```{r}
 plot(
