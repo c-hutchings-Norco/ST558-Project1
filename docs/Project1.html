@@ -311,16 +311,16 @@ Attaching package: 'dplyr'</code></pre>
 <pre><code># A tibble: 47,486 × 6
    SEX   PWGTP JWAP  MAR   SCHL  division
    &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;   
- 1 2     75    0     3     24    9       
- 2 1     51    0     1     24    5       
- 3 1     443   88    3     24    3       
- 4 2     56    0     2     24    1       
- 5 2     217   96    5     24    8       
- 6 1     54    103   5     24    9       
- 7 1     32    105   5     24    3       
- 8 2     27    97    3     24    7       
- 9 2     77    91    1     24    3       
-10 2     50    0     1     24    2       
+ 1 2     17    0     1     24    9       
+ 2 1     58    0     3     24    3       
+ 3 2     72    0     2     24    5       
+ 4 2     13    0     1     24    5       
+ 5 2     37    0     5     24    4       
+ 6 2     47    155   5     24    2       
+ 7 1     10    0     3     24    7       
+ 8 1     24    92    5     24    3       
+ 9 2     153   0     4     24    2       
+10 2     46    112   1     24    1       
 # ℹ 47,476 more rows</code></pre>
 </div>
 </div>
@@ -786,6 +786,7 @@ $`09`
 </section>
 <section id="summaries-for-numerical-and-categorical-variables" class="level2">
 <h2 class="anchored" data-anchor-id="summaries-for-numerical-and-categorical-variables">Summaries for Numerical and Categorical Variables</h2>
+<p>After retrieving and cleaning the Census data, the next step was to create functions that summarize both numerical and categorical variables. Since PUMS data contain survey weights, weighted statistics were used for numerical variables. To accomplish this, I first created helper functions for weighted means and weighted standard deviations.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">#create a function to calculate the weighted mean</span></span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>get_mean_function <span class="ot">&lt;-</span> <span class="cf">function</span>(numeric_vector, weight_vector){</span>
@@ -807,6 +808,7 @@ $`09`
 </div>
 <section id="function-for-summaries" class="level3">
 <h3 class="anchored" data-anchor-id="function-for-summaries">Function for Summaries</h3>
+<p>Using the custom <code>"census"</code> class, I created a <code>summary.census()</code> method. This function calculates weighted means and weighted standard deviations for numerical variables and frequency tables for categorical variables. The user may either use the default variables or specify their own variables when calling the function. All results are returned as a named list.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>summary.census <span class="ot">&lt;-</span> <span class="cf">function</span>(census_tib, </span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>                           <span class="at">num_var=</span> <span class="cn">NULL</span>, </span>
@@ -848,6 +850,7 @@ $`09`
 </section>
 <section id="test-the-function-2" class="level3">
 <h3 class="anchored" data-anchor-id="test-the-function-2">Test the Function</h3>
+<p>The summary function was tested using the numerical variable <strong>GRPIP</strong> and the categorical variable <strong>FER</strong>. The results show that the function correctly calculates weighted summary statistics and frequency counts. Testing different variable combinations confirmed that the function can be reused across multiple Census datasets.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Create table to use in function</span></span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="co">#census_api_tibble &lt;- get_api_data()</span></span>
@@ -880,6 +883,8 @@ N/A (less than 15 years/greater than 50 years/ male)
 </section>
 <section id="create-a-generic-plot-function" class="level2">
 <h2 class="anchored" data-anchor-id="create-a-generic-plot-function">Create a Generic Plot Function</h2>
+<p>To provide graphical summaries, I created a custom <code>plot.census()</code> method. Because the Census tibble has class <code>"census"</code>, calling the generic <code>plot()</code> function automatically dispatches to this method. The function requires one numerical variable and one categorical variable and produces a boxplot showing the distribution of the numerical variable across the levels of the categorical variable.</p>
+<p>The plotting function also incorporates the Census survey weights through the <code>PWGTP</code> variable and uses <code>get()</code> to access variables passed as character strings. This allows the same plotting function to work with many different variables.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>plot.census <span class="ot">&lt;-</span> <span class="cf">function</span>(census_tib, num_var, cat_var){</span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  </span>
@@ -902,6 +907,7 @@ N/A (less than 15 years/greater than 50 years/ male)
 </div>
 <section id="test-graph-function" class="level3">
 <h3 class="anchored" data-anchor-id="test-graph-function">Test Graph Function</h3>
+<p>The plotting function was tested using <strong>GRPIP</strong> and <strong>FER</strong>. The resulting boxplot provided a visual comparison of income distributions across fertility categories, confirming that the custom plotting method works correctly and can be called using the standard <code>plot()</code> function.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(census_api_tib, <span class="at">num_var=</span> <span class="st">'GRPIP'</span>, <span class="at">cat_var=</span><span class="st">"FER"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
@@ -912,10 +918,94 @@ N/A (less than 15 years/greater than 50 years/ male)
 </div>
 </div>
 </div>
-
-
 </section>
 </section>
+</section>
+<section id="investigation" class="level1">
+<h1>Investigation</h1>
+<p>One question that can be explored using the Census data is whether income differs based on fertility status. The variable <strong>GRPIP</strong> measures income, while <strong>FER</strong> indicates whether an individual gave birth within the previous 12 months. Because both variables can be retrieved directly through the API function, they provide a useful example for demonstrating the functionality of the custom API, summary, and plotting methods.</p>
+<p>First, the data were retrieved using the API function.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>census_fertility_income <span class="ot">&lt;-</span> <span class="fu">get_api_data</span>(<span class="at">num_var=</span> <span class="st">'GRPIP'</span>, <span class="at">cat_var=</span><span class="st">"FER"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The custom summary function was then used to produce weighted numerical summaries and categorical counts.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(census_fertility_income)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$GRPIP_mean
+[1] 15.38805
+
+$GRPIP_sd
+[1] 25.43006
+
+$FER
+
+N/A (less than 15 years/greater than 50 years/ male) 
+                                              304843 
+                                                  No 
+                                               84989 
+                                                 Yes 
+                                                3893 </code></pre>
+</div>
+</div>
+<p>The summary results showed the weighted mean and weighted standard deviation of income as well as the number of observations in each fertility category. This demonstrates that the custom <code>summary.census()</code> method successfully computes both numerical and categorical summaries while automatically incorporating the Census sampling weights.</p>
+<p>Next, the custom plotting function was used to visualize the distribution of income across fertility categories.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>  census_fertility_income,</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">num_var =</span> <span class="st">"GRPIP"</span>,</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">cat_var =</span> <span class="st">"FER"</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project1_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The resulting boxplot allows the income distributions of the fertility groups to be compared visually. Differences in medians, variability, and potential outliers can be observed directly from the graph. This example demonstrates that the custom <code>plot.census()</code> method can create graphical summaries using the same syntax as the generic R <code>plot()</code> function.</p>
+<p>To further test the flexibility of the functions, a second dataset was created using age and sex.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>census_age <span class="ot">&lt;-</span> <span class="fu">get_api_data</span>(</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">num_var =</span> <span class="st">"AGEP"</span>,</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">cat_var =</span> <span class="st">"SEX"</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The custom summary function was applied again.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(census_age)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$AGEP_mean
+[1] 39.22089
+
+$AGEP_sd
+[1] 22.90883
+
+$SEX
+
+  Male Female 
+194636 199089 </code></pre>
+</div>
+</div>
+<p>A graphical summary was also produced.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>  census_age,</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">num_var =</span> <span class="st">"AGEP"</span>,</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">cat_var =</span> <span class="st">"SEX"</span></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project1_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>These examples demonstrate that the API, summary, and plotting functions can be reused across different Census variables without modifying the underlying code. By combining API retrieval, weighted summaries, and custom graphics, the functions provide a convenient framework for exploring Census PUMS data.</p>
+
+
 </section>
 
 </main> <!-- /main -->

@@ -487,6 +487,8 @@ get_api_data_multi(years = c(2021, 2022))
 
 ## Summaries for Numerical and Categorical Variables
 
+After retrieving and cleaning the Census data, the next step was to create functions that summarize both numerical and categorical variables. Since PUMS data contain survey weights, weighted statistics were used for numerical variables. To accomplish this, I first created helper functions for weighted means and weighted standard deviations.
+
 ```{r}
 
 #create a function to calculate the weighted mean
@@ -509,6 +511,8 @@ get_sd_function <- function(numeric_vector, weight_vector){
 ```
 
 ### Function for Summaries
+
+Using the custom `"census"` class, I created a `summary.census()` method. This function calculates weighted means and weighted standard deviations for numerical variables and frequency tables for categorical variables. The user may either use the default variables or specify their own variables when calling the function. All results are returned as a named list.
 
 ```{r}
 summary.census <- function(census_tib, 
@@ -551,6 +555,8 @@ summary.census <- function(census_tib,
 
 ### Test the Function
 
+The summary function was tested using the numerical variable **GRPIP** and the categorical variable **FER**. The results show that the function correctly calculates weighted summary statistics and frequency counts. Testing different variable combinations confirmed that the function can be reused across multiple Census datasets.
+
 ```{r}
 #Create table to use in function
 #census_api_tibble <- get_api_data()
@@ -565,6 +571,10 @@ summary(census_api_tib)
 ```
 
 ## Create a Generic Plot Function
+
+To provide graphical summaries, I created a custom `plot.census()` method. Because the Census tibble has class `"census"`, calling the generic `plot()` function automatically dispatches to this method. The function requires one numerical variable and one categorical variable and produces a boxplot showing the distribution of the numerical variable across the levels of the categorical variable.
+
+The plotting function also incorporates the Census survey weights through the `PWGTP` variable and uses `get()` to access variables passed as character strings. This allows the same plotting function to work with many different variables.
 
 ```{r}
 plot.census <- function(census_tib, num_var, cat_var){
@@ -589,6 +599,65 @@ plot.census <- function(census_tib, num_var, cat_var){
 
 ### Test Graph Function
 
+The plotting function was tested using **GRPIP** and **FER**. The resulting boxplot provided a visual comparison of income distributions across fertility categories, confirming that the custom plotting method works correctly and can be called using the standard `plot()` function.
+
 ```{r}
 plot(census_api_tib, num_var= 'GRPIP', cat_var="FER")
 ```
+
+# Investigation
+
+One question that can be explored using the Census data is whether income differs based on fertility status. The variable **GRPIP** measures income, while **FER** indicates whether an individual gave birth within the previous 12 months. Because both variables can be retrieved directly through the API function, they provide a useful example for demonstrating the functionality of the custom API, summary, and plotting methods.
+
+First, the data were retrieved using the API function.
+
+```{r}
+census_fertility_income <- get_api_data(num_var= 'GRPIP', cat_var="FER")
+```
+
+The custom summary function was then used to produce weighted numerical summaries and categorical counts.
+
+```{r}
+summary(census_fertility_income)
+```
+
+The summary results showed the weighted mean and weighted standard deviation of income as well as the number of observations in each fertility category. This demonstrates that the custom `summary.census()` method successfully computes both numerical and categorical summaries while automatically incorporating the Census sampling weights.
+
+Next, the custom plotting function was used to visualize the distribution of income across fertility categories.
+
+```{r}
+plot(
+  census_fertility_income,
+  num_var = "GRPIP",
+  cat_var = "FER"
+)
+```
+
+The resulting boxplot allows the income distributions of the fertility groups to be compared visually. Differences in medians, variability, and potential outliers can be observed directly from the graph. This example demonstrates that the custom `plot.census()` method can create graphical summaries using the same syntax as the generic R `plot()` function.
+
+To further test the flexibility of the functions, a second dataset was created using age and sex.
+
+```{r}
+census_age <- get_api_data(
+  num_var = "AGEP",
+  cat_var = "SEX"
+)
+```
+
+The custom summary function was applied again.
+
+```{r}
+summary(census_age)
+```
+
+A graphical summary was also produced.
+
+```{r}
+plot(
+  census_age,
+  num_var = "AGEP",
+  cat_var = "SEX"
+)
+```
+
+These examples demonstrate that the API, summary, and plotting functions can be reused across different Census variables without modifying the underlying code. By combining API retrieval, weighted summaries, and custom graphics, the functions provide a convenient framework for exploring Census PUMS data.
